@@ -21,8 +21,13 @@ Profile.init(
       type: Sequelize.STRING,
       allowNull: false
     },
-    balance:{
-      type:Sequelize.DECIMAL(12,2)
+    balance: {
+        type: Sequelize.DECIMAL(12, 2),
+        allowNull: false,
+        defaultValue: 0,
+        validate: {
+            min: 0,
+        },
     },
     type: {
       type: Sequelize.ENUM('client', 'contractor')
@@ -76,6 +81,26 @@ Job.init(
   }
 );
 
+class IdempotencyKey extends Sequelize.Model {}
+IdempotencyKey.init(
+    {
+        key: {
+            type: Sequelize.STRING,
+            allowNull: false,
+            unique: true,
+        },
+        response: {
+            type: Sequelize.JSON,
+            allowNull: false,
+        },
+    },
+    {
+        sequelize,
+        modelName: 'IdempotencyKey',
+        timestamps: true,
+    }
+);
+
 Profile.hasMany(Contract, {as :'Contractor',foreignKey:'ContractorId'})
 Contract.belongsTo(Profile, {as: 'Contractor'})
 Profile.hasMany(Contract, {as : 'Client', foreignKey:'ClientId'})
@@ -87,5 +112,6 @@ module.exports = {
   sequelize,
   Profile,
   Contract,
-  Job
+  Job,
+  IdempotencyKey
 };
