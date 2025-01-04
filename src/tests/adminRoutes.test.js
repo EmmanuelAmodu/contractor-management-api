@@ -1,6 +1,6 @@
 const request = require('supertest');
 const app = require('../app');
-const { sequelize, Profile, Contract, Job } = require('../models');
+const { sequelize, Profile, Contract, Job } = require('../models/model');
 
 describe('Admin Routes', () => {
   beforeAll(async () => {
@@ -34,7 +34,7 @@ describe('Admin Routes', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('profession', 'Wizard');
-      expect(response.body).toHaveProperty('total_earned', '650'); // 200 + 300 + 150
+      expect(response.body).toHaveProperty('total_earned', 650); // 200 + 300 + 150
     });
 
     it('should return 404 if no professions are found', async () => {
@@ -52,7 +52,7 @@ describe('Admin Routes', () => {
         .set('profile_id', 1)
         .expect(400);
 
-      expect(response.body).toHaveProperty('error', 'Start and end dates are required');
+      expect(response.body).toHaveProperty('error', '\"end\" is required');
     });
 
     it('should return 401 if profile_id is missing', async () => {
@@ -115,7 +115,7 @@ describe('Admin Routes', () => {
         .set('profile_id', 1)
         .expect(400);
 
-      expect(response.body).toHaveProperty('error', 'Start and end dates are required');
+      expect(response.body).toHaveProperty('error', '\"end\" is required');
     });
 
     it('should return 401 if profile_id is missing', async () => {

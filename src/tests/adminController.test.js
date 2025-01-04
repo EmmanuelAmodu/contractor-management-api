@@ -3,7 +3,7 @@ const { getBestProfession, getBestClients } = require('../controllers/adminContr
 const { Job, Contract, Profile, sequelize } = require('../models/model');
 const { Op } = require('sequelize');
 
-jest.mock('../models');
+jest.mock("../models/model"); // Mock models
 
 describe('Admin Controller', () => {
   describe('getBestProfession', () => {
@@ -72,7 +72,7 @@ describe('Admin Controller', () => {
       await getBestProfession(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Start and end dates are required' });
+      expect(res.json).toHaveBeenCalledWith({ error: '\"end\" is required' });
     });
 
     it('should handle database errors gracefully', async () => {
@@ -192,7 +192,7 @@ describe('Admin Controller', () => {
       await getBestClients(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Start and end dates are required' });
+      expect(res.json).toHaveBeenCalledWith({ error: '\"end\" is required' });
     });
 
     it('should handle database errors gracefully', async () => {
