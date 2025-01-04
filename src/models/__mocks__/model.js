@@ -1,7 +1,28 @@
-const { sequelize, Profile, Contract, Job } = require('../model');
-
 module.exports = {
-  sequelize,
+  sequelize: {
+    transaction: jest.fn().mockImplementation(() => {
+      return {
+        commit: jest.fn(),
+        rollback: jest.fn(),
+      };
+    }),
+    Transaction: {
+      ISOLATION_LEVELS: {
+        READ_UNCOMMITTED: 'READ UNCOMMITTED',
+        READ_COMMITTED: 'READ COMMITTED',
+        REPEATABLE_READ: 'REPEATABLE READ',
+        SERIALIZABLE: 'SERIALIZABLE',
+      },
+      LOCK: {
+        UPDATE: 'UPDATE',
+        SHARE: 'SHARE',
+      },
+    },
+    Op: {
+      or: Symbol.for('or'),
+      ne: Symbol.for('ne'),
+    },
+  },
   Profile: {
     findOne: jest.fn(),
     findAll: jest.fn(),
@@ -9,19 +30,20 @@ module.exports = {
     create: jest.fn(),
     findByPk: jest.fn(),
     update: jest.fn(),
-    // Add other necessary mocked methods
   },
   Contract: {
-    findOne: jest.fn(),
     findAll: jest.fn(),
+    findOne: jest.fn(),
     create: jest.fn(),
-    // Add other necessary mocked methods
   },
   Job: {
-    findOne: jest.fn(),
     findAll: jest.fn(),
+    findOne: jest.fn(),
     create: jest.fn(),
     sum: jest.fn(),
-    // Add other necessary mocked methods
+  },
+  IdempotencyKey: {
+    findOne: jest.fn(),
+    create: jest.fn(),
   },
 };
