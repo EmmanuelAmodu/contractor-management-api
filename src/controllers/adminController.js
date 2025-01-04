@@ -60,8 +60,8 @@ const getBestClients = async (req, res) => {
     const bestClients = await Job.findAll({
       attributes: [
         'Contract.Client.id',
-        [literal(`Client.firstName || ' ' || Client.lastName`), 'fullName'],
-        [fn('SUM', col('price')), 'total_paid'], // Renamed alias
+        [literal(`Contract->Client.firstName || ' ' || Contract->Client.lastName`), 'fullName'],
+        [fn('SUM', col('price')), 'total_paid'],
       ],
       where: {
         paid: true,

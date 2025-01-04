@@ -85,10 +85,10 @@ describe('Admin Routes', () => {
       expect(response.body.length).toBe(2);
       expect(response.body[0]).toHaveProperty('id', 1);
       expect(response.body[0]).toHaveProperty('fullName', 'Harry Potter');
-      expect(response.body[0]).toHaveProperty('total_paid', '500'); // Updated property
+      expect(response.body[0]).toHaveProperty('total_paid', '500');
       expect(response.body[1]).toHaveProperty('id', 3);
       expect(response.body[1]).toHaveProperty('fullName', 'Ron Weasley');
-      expect(response.body[1]).toHaveProperty('total_paid', '150'); // Updated property
+      expect(response.body[1]).toHaveProperty('total_paid', '150');
     });
   
     it('should apply default limit if not specified', async () => {
@@ -98,8 +98,8 @@ describe('Admin Routes', () => {
         .expect(200);
   
       expect(response.body.length).toBe(2); // Default limit is 2
-      expect(response.body[0]).toHaveProperty('total_paid', '500'); // Updated property
-      expect(response.body[1]).toHaveProperty('total_paid', '150'); // Updated property
+      expect(response.body[0]).toHaveProperty('total_paid', '500');
+      expect(response.body[1]).toHaveProperty('total_paid', '150');
     });
   
     it('should return an empty array if no clients are found', async () => {
@@ -140,10 +140,10 @@ describe('Admin Routes', () => {
   
     it('should return 400 for invalid date formats', async () => {
       const response = await request(app)
-        .get('/admin/best-clients?start=invalid-date&end=2020-08-20') // Correct route
+        .get('/admin/best-clients?start=invalid-date&end=2020-08-20')
         .set('profile_id', '1')
         .expect(400);
-    
+  
       expect(response.body).toHaveProperty('error', '"start" must be in ISO 8601 date format');
     });
   });
