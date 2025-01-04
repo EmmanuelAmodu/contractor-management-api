@@ -1,7 +1,7 @@
 // tests/balanceRoutes.test.js
 const request = require('supertest');
 const app = require('../app');
-const { sequelize, Profile, Contract, Job } = require('../models');
+const { sequelize, Profile, Contract, Job } = require('../models/model');
 
 describe('Balance Routes', () => {
   beforeAll(async () => {

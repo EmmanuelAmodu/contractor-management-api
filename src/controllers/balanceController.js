@@ -1,5 +1,5 @@
 const { Profile, Job, Contract, sequelize } = require('../models/model');
-const { Op } = require('sequelize');
+const { Op, Transaction } = require('sequelize');
 const Joi = require('joi');
 const logger = require('../utils/logger');
 
@@ -20,7 +20,7 @@ const depositBalance = async (req, res) => {
 
     // Start a transaction with SERIALIZABLE isolation level
     const t = await sequelize.transaction({
-        isolationLevel: sequelize.Transaction.ISOLATION_LEVELS.SERIALIZABLE,
+        isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE,
     });
 
     try {
