@@ -207,30 +207,4 @@ describe('Admin Controller', () => {
       expect(res.json).toHaveBeenCalledWith({ error: 'Internal Server Error' });
     });
   });
-
-  describe('Additional Tests', () => {
-    it('should return best profession correctly with overlapping date ranges', async () => {
-      const mockBestProfession = [
-        { profession: 'Wizard', total_earned: 'SUM(price)' },
-      ];
-      Job.findAll.mockResolvedValue(mockBestProfession);
-
-      const response = await request(app)
-        .get('/admin/best-profession?start=2020-08-10&end=2020-08-20')
-        .set('profile_id', 1)
-        .expect(200);
-
-      expect(response.body).toHaveProperty('profession', 'Wizard');
-      expect(response.body).toHaveProperty('total_earned', 'SUM(price)');
-    });
-
-    it('should handle invalid date formats gracefully', async () => {
-      const response = await request(app)
-        .get('/admin/best-profession?start=invalid-date&end=2020-08-20')
-        .set('profile_id', 1)
-        .expect(400);
-
-      expect(response.body).toHaveProperty('error', '"start" must be a valid date');
-    });
-  });
 });

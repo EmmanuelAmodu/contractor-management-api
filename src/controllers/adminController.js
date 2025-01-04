@@ -1,5 +1,5 @@
 const { Job, Contract, Profile, sequelize } = require('../models/model');
-const { Op } = require('sequelize');
+const { Op, col, fn, literal } = require('sequelize');
 const Joi = require('joi');
 
 const bestProfessionSchema = Joi.object({
@@ -22,8 +22,8 @@ const getBestProfession = async (req, res) => {
   try {
     const bestProfession = await Job.findAll({
       attributes: [
-        [sequelize.col('Contract.Contractor.profession'), 'profession'],
-        [sequelize.fn('SUM', sequelize.col('price')), 'total_earned'],
+        [col('Contract.Contractor.profession'), 'profession'],
+        [fn('SUM', col('price')), 'total_earned'],
       ],
       where: {
         paid: true,
@@ -38,7 +38,7 @@ const getBestProfession = async (req, res) => {
         },
       },
       group: ['profession'],
-      order: [[sequelize.fn('SUM', sequelize.col('price')), 'DESC']],
+      order: [[fn('SUM', col('price')), 'DESC']],
       limit: 1,
     });
 
@@ -60,8 +60,8 @@ const getBestClients = async (req, res) => {
     const bestClients = await Job.findAll({
       attributes: [
         'Contract.Client.id',
-        [sequelize.literal(`Client.firstName || ' ' || Client.lastName`), 'fullName'],
-        [sequelize.fn('SUM', sequelize.col('price')), 'paid'],
+        [literal(`Client.firstName || ' ' || Client.lastName`), 'fullName'],
+        [fn('SUM', col('price')), 'total_paid'], // Renamed alias
       ],
       where: {
         paid: true,
@@ -76,12 +76,13 @@ const getBestClients = async (req, res) => {
         },
       },
       group: ['Contract.Client.id'],
-      order: [[sequelize.fn('SUM', sequelize.col('price')), 'DESC']],
+      order: [[fn('SUM', col('price')), 'DESC']],
       limit: Number.parseInt(value.limit),
     });
 
     res.json(bestClients);
   } catch (err) {
+    console.error('Error in getBestClients:', err); // Log the actual error
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
