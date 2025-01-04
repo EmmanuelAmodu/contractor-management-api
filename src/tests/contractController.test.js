@@ -1,6 +1,8 @@
 const { getContractById, getContracts } = require('../controllers/contractController');
 const { Contract } = require('../models/model');
 
+jest.mock("../models/model"); // Mock models
+
 describe('Contract Controller', () => {
   describe('getContractById', () => {
     let req;
@@ -104,8 +106,8 @@ describe('Contract Controller', () => {
 
       expect(Contract.findAll).toHaveBeenCalledWith({
         where: {
-          [Contract.sequelize.Op.or]: [{ ClientId: 1 }, { ContractorId: 1 }],
-          status: { [Contract.sequelize.Op.ne]: 'terminated' },
+          [Op.or]: [{ ClientId: 1 }, { ContractorId: 1 }],
+          status: { [Op.ne]: 'terminated' },
         },
         limit: 10,
         offset: 0,

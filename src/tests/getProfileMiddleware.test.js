@@ -2,7 +2,7 @@
 const { getProfile } = require('../middleware/getProfile');
 const { Profile } = require('../models/model');
 
-jest.mock('../models');
+jest.mock('../models/model');
 
 describe('getProfile Middleware', () => {
   let req;
