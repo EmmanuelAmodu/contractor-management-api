@@ -2,6 +2,7 @@
 const request = require('supertest');
 const app = require('../app');
 const { sequelize, Profile, Contract, Job } = require('../models/model');
+const { v4: uuidv4 } = require('uuid');
 
 describe('Job Routes', () => {
   beforeAll(async () => {
@@ -66,7 +67,7 @@ describe('Job Routes', () => {
 
   describe('POST /jobs/:job_id/pay', () => {
     it('should pay for a job successfully', async () => {
-      const idempotencyKey = 'unique-key-123';
+      const idempotencyKey = uuidv4();
 
       // Ensure client has sufficient balance
       await Profile.update({ balance: 1000 }, { where: { id: 1 } });
@@ -83,7 +84,7 @@ describe('Job Routes', () => {
     });
 
     it('should return 404 if the job does not exist or does not belong to the profile', async () => {
-      const idempotencyKey = 'unique-key-123';
+      const idempotencyKey = uuidv4();
 
       const response = await request(app)
         .post('/jobs/999/pay')
@@ -95,7 +96,7 @@ describe('Job Routes', () => {
     });
 
     it('should return 400 if the job is already paid', async () => {
-      const idempotencyKey = 'unique-key-123';
+      const idempotencyKey = uuidv4();
 
       const response = await request(app)
         .post('/jobs/2/pay')
@@ -107,7 +108,7 @@ describe('Job Routes', () => {
     });
 
     it('should return 400 if the client has insufficient balance', async () => {
-      const idempotencyKey = 'unique-key-123';
+      const idempotencyKey = uuidv4();
 
       // Set client balance below job price
       await Profile.update({ balance: 100 }, { where: { id: 1 } });
