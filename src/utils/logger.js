@@ -10,12 +10,12 @@ const logger = createLogger({
     ),
     defaultMeta: { service: 'deel-task-service' },
     transports: [
-        new transports.File({ filename: 'error.log', level: 'error' }),
-        new transports.File({ filename: 'combined.log' }),
+        new transports.File({ filename: 'logs/error.log', level: 'error' }),
+        new transports.File({ filename: 'logs/combined.log' }),
     ],
 });
 
-// If not in production, log to console as well
+// If not in production, log to the console with colorized output
 if (process.env.NODE_ENV !== 'production') {
     logger.add(new transports.Console({
         format: format.combine(
