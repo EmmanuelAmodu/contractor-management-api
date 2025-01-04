@@ -1,4 +1,5 @@
-const { Job, Contract, Profile, sequelize } = require('../models/model');
+const { Job, Contract, Profile, IdempotencyKey, sequelize } = require('../models/model');
+const logger = require('../utils/logger');
 
 const getUnpaidJobs = async (req, res) => {
     const profileId = req.profile.id;
@@ -18,46 +19,104 @@ const getUnpaidJobs = async (req, res) => {
 };
 
 const payJob = async (req, res) => {
-    const { job_id } = req.params;
-    const profileId = req.profile.id;
+  const { job_id } = req.params;
+  const profileId = req.profile.id;
+  const idempotencyKey = req.idempotencyKey;
 
-    const job = await Job.findOne({
-        where: { id: job_id },
-        include: {
-            model: Contract,
-            where: { ClientId: profileId },
-            include: { model: Profile, as: 'Contractor' },
-        },
-    });
+  // Start a transaction with SERIALIZABLE isolation level
+  const t = await sequelize.transaction({
+      isolationLevel: sequelize.Transaction.ISOLATION_LEVELS.SERIALIZABLE,
+  });
 
-    if (!job) return res.status(404).json({ error: 'Job not found or access denied' });
-    if (job.paid) return res.status(400).json({ error: 'Job is already paid' });
+  try {
+      // Check if idempotency key exists
+      const existingKey = await IdempotencyKey.findOne({ where: { key: idempotencyKey }, transaction: t });
+      if (existingKey) {
+          await t.rollback();
+          return res.status(200).json(existingKey.response);
+      }
 
-    const client = req.profile;
-    const contractor = job.Contract.Contractor;
+      // Fetch and lock the job row
+      const job = await Job.findOne({
+          where: { id: job_id },
+          include: {
+              model: Contract,
+              where: { ClientId: profileId },
+              include: { model: Profile, as: 'Contractor' },
+          },
+          transaction: t,
+          lock: t.LOCK.UPDATE,
+      });
 
-    if (client.balance < job.price) {
-        return res.status(400).json({ error: 'Insufficient balance' });
-    }
+      if (!job) {
+          await t.rollback();
+          return res.status(404).json({ error: 'Job not found or access denied' });
+      }
 
-    // Transaction to ensure atomicity
-    const t = await sequelize.transaction();
-    try {
-        client.balance -= job.price;
-        contractor.balance += job.price;
-        job.paid = true;
-        job.paymentDate = new Date();
+      if (job.paid) {
+          await t.rollback();
+          return res.status(400).json({ error: 'Job is already paid' });
+      }
 
-        await client.save({ transaction: t });
-        await contractor.save({ transaction: t });
-        await job.save({ transaction: t });
+      // Fetch and lock the client row
+      const client = await Profile.findOne({
+          where: { id: profileId },
+          transaction: t,
+          lock: t.LOCK.UPDATE,
+      });
 
-        await t.commit();
-        res.json({ message: 'Payment successful', job });
-    } catch (error) {
-        await t.rollback();
-        res.status(500).json({ error: 'Payment failed', details: error.message });
-    }
+      if (!client) {
+          await t.rollback();
+          return res.status(404).json({ error: 'Client not found' });
+      }
+
+      if (client.balance < job.price) {
+          await t.rollback();
+          return res.status(400).json({ error: 'Insufficient balance' });
+      }
+
+      // Fetch and lock the contractor row
+      const contractor = await Profile.findOne({
+          where: { id: job.Contract.Contractor.id },
+          transaction: t,
+          lock: t.LOCK.UPDATE,
+      });
+
+      if (!contractor) {
+          await t.rollback();
+          return res.status(404).json({ error: 'Contractor not found' });
+      }
+
+      // Update balances and job status
+      client.balance = Number.parseFloat(client.balance) - Number.parseFloat(job.price);
+      contractor.balance = Number.parseFloat(contractor.balance) + Number.parseFloat(job.price);
+      job.paid = true;
+      job.paymentDate = new Date();
+
+      // Save updates within the transaction
+      await client.save({ transaction: t });
+      await contractor.save({ transaction: t });
+      await job.save({ transaction: t });
+
+      // Store the idempotency key and response
+      await IdempotencyKey.create({
+          key: idempotencyKey,
+          response: { message: 'Payment successful', job },
+      }, { transaction: t });
+
+      // Commit the transaction
+      await t.commit();
+
+      // Log the successful payment
+      logger.info(`Payment successful: Job ID ${job.id} paid by Client ID ${client.id} to Contractor ID ${contractor.id} for amount ${job.price}`);
+
+      res.json({ message: 'Payment successful', job });
+  } catch (error) {
+      // Rollback the transaction on error
+      await t.rollback();
+      logger.error(`Payment failed: Job ID ${job_id} by Client ID ${profileId}. Error: ${error.message}`);
+      res.status(500).json({ error: 'Payment failed', details: error.message });
+  }
 };
 
 module.exports = { getUnpaidJobs, payJob };

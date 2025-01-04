@@ -1,7 +1,7 @@
 // tests/jobRoutes.test.js
 const request = require('supertest');
 const app = require('../app');
-const { sequelize, Profile, Contract, Job } = require('../models');
+const { sequelize, Profile, Contract, Job } = require('../models/model');
 
 describe('Job Routes', () => {
   beforeAll(async () => {
@@ -89,21 +89,27 @@ describe('Job Routes', () => {
     });
 
     it('should return 400 if the job is already paid', async () => {
+      const idempotencyKey = 'unique-key-123';
+
       const response = await request(app)
         .post('/jobs/2/pay')
         .set('profile_id', 1)
+        .set('Idempotency-Key', idempotencyKey)
         .expect(400);
 
       expect(response.body).toHaveProperty('error', 'Job is already paid');
     });
 
     it('should return 400 if the client has insufficient balance', async () => {
+      const idempotencyKey = 'unique-key-123';
+
       // Set client balance below job price
       await Profile.update({ balance: 100 }, { where: { id: 1 } });
 
       const response = await request(app)
         .post('/jobs/1/pay')
         .set('profile_id', 1)
+        .set('Idempotency-Key', idempotencyKey)
         .expect(400);
 
       expect(response.body).toHaveProperty('error', 'Insufficient balance');

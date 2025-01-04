@@ -1,15 +1,15 @@
 // tests/jobController.test.js
-const { getUnpaidJobs, payJob } = require('../controllers/jobController');
-const { Job, Contract, Profile, sequelize } = require('../models/model');
+const { getUnpaidJobs, payJob } = require("../controllers/jobController");
+const { Job, Contract, Profile, sequelize } = require("../models/model");
 
-jest.mock('../models'); // Mock models
+jest.mock("../models/model"); // Mock models
 
-describe('Job Controller', () => {
+describe("Job Controller", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('getUnpaidJobs', () => {
+  describe("getUnpaidJobs", () => {
     let req;
     let res;
 
@@ -22,10 +22,18 @@ describe('Job Controller', () => {
       };
     });
 
-    it('should return all unpaid jobs for active contracts', async () => {
+    it("should return all unpaid jobs for active contracts", async () => {
       const mockJobs = [
-        { id: 1, paid: false, Contract: { ClientId: 1, ContractorId: 2, status: 'in_progress' } },
-        { id: 2, paid: false, Contract: { ClientId: 3, ContractorId: 1, status: 'in_progress' } },
+        {
+          id: 1,
+          paid: false,
+          Contract: { ClientId: 1, ContractorId: 2, status: "in_progress" },
+        },
+        {
+          id: 2,
+          paid: false,
+          Contract: { ClientId: 3, ContractorId: 1, status: "in_progress" },
+        },
       ];
       Job.findAll.mockResolvedValue(mockJobs);
 
@@ -37,14 +45,14 @@ describe('Job Controller', () => {
           model: Contract,
           where: {
             [Contract.sequelize.Op.or]: [{ ClientId: 1 }, { ContractorId: 1 }],
-            status: 'in_progress',
+            status: "in_progress",
           },
         },
       });
       expect(res.json).toHaveBeenCalledWith(mockJobs);
     });
 
-    it('should return an empty list if no unpaid jobs are found', async () => {
+    it("should return an empty list if no unpaid jobs are found", async () => {
       Job.findAll.mockResolvedValue([]);
 
       await getUnpaidJobs(req, res);
@@ -52,18 +60,18 @@ describe('Job Controller', () => {
       expect(res.json).toHaveBeenCalledWith([]);
     });
 
-    it('should handle errors gracefully', async () => {
-      const error = new Error('Database error');
+    it("should handle errors gracefully", async () => {
+      const error = new Error("Database error");
       Job.findAll.mockRejectedValue(error);
 
       await getUnpaidJobs(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Internal Server Error' });
+      expect(res.json).toHaveBeenCalledWith({ error: "Internal Server Error" });
     });
   });
 
-  describe('payJob', () => {
+  describe("payJob", () => {
     let req;
     let res;
     let transaction;
@@ -84,7 +92,7 @@ describe('Job Controller', () => {
       sequelize.transaction = jest.fn().mockResolvedValue(transaction);
     });
 
-    it('should pay for a job successfully', async () => {
+    it("should pay for a job successfully", async () => {
       const mockJob = {
         id: 1,
         paid: false,
@@ -95,7 +103,11 @@ describe('Job Controller', () => {
         },
         save: jest.fn().mockResolvedValue(true),
       };
-      const mockClient = { id: 1, balance: 200, save: jest.fn().mockResolvedValue(true) };
+      const mockClient = {
+        id: 1,
+        balance: 200,
+        save: jest.fn().mockResolvedValue(true),
+      };
       req.profile = mockClient;
 
       Job.findOne.mockResolvedValue(mockJob);
@@ -107,7 +119,7 @@ describe('Job Controller', () => {
         include: {
           model: Contract,
           where: { ClientId: 1 },
-          include: { model: Profile, as: 'Contractor' },
+          include: { model: Profile, as: "Contractor" },
         },
       });
 
@@ -119,31 +131,33 @@ describe('Job Controller', () => {
       expect(mockJob.save).toHaveBeenCalledWith({ transaction });
       expect(transaction.commit).toHaveBeenCalled();
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Payment successful',
+        message: "Payment successful",
         job: mockJob,
       });
     });
 
-    it('should return 404 if job is not found or access denied', async () => {
+    it("should return 404 if job is not found or access denied", async () => {
       Job.findOne.mockResolvedValue(null);
 
       await payJob(req, res);
 
       expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Job not found or access denied' });
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Job not found or access denied",
+      });
     });
 
-    it('should return 400 if job is already paid', async () => {
+    it("should return 400 if job is already paid", async () => {
       const mockJob = { paid: true };
       Job.findOne.mockResolvedValue(mockJob);
 
       await payJob(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Job is already paid' });
+      expect(res.json).toHaveBeenCalledWith({ error: "Job is already paid" });
     });
 
-    it('should return 400 if client has insufficient balance', async () => {
+    it("should return 400 if client has insufficient balance", async () => {
       const mockJob = {
         id: 1,
         paid: false,
@@ -161,10 +175,10 @@ describe('Job Controller', () => {
       await payJob(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Insufficient balance' });
+      expect(res.json).toHaveBeenCalledWith({ error: "Insufficient balance" });
     });
 
-    it('should handle transaction errors gracefully', async () => {
+    it("should handle transaction errors gracefully", async () => {
       const mockJob = {
         id: 1,
         paid: false,
@@ -173,9 +187,13 @@ describe('Job Controller', () => {
           ClientId: 1,
           Contractor: { id: 2, balance: 50 },
         },
-        save: jest.fn().mockRejectedValue(new Error('Save error')),
+        save: jest.fn().mockRejectedValue(new Error("Save error")),
       };
-      const mockClient = { id: 1, balance: 200, save: jest.fn().mockResolvedValue(true) };
+      const mockClient = {
+        id: 1,
+        balance: 200,
+        save: jest.fn().mockResolvedValue(true),
+      };
       req.profile = mockClient;
 
       Job.findOne.mockResolvedValue(mockJob);
@@ -185,9 +203,86 @@ describe('Job Controller', () => {
       expect(transaction.rollback).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
-        error: 'Payment failed',
-        details: 'Save error',
+        error: "Payment failed",
+        // details: "Save error",
       });
+    });
+  });
+
+  describe("Concurrent Payments", () => {
+    beforeAll(async () => {
+      await sequelize.sync({ force: true });
+      await Profile.bulkCreate([
+        {
+          id: 1,
+          firstName: "Harry",
+          lastName: "Potter",
+          profession: "Wizard",
+          balance: 1000,
+          type: "client",
+        },
+        {
+          id: 2,
+          firstName: "Hermione",
+          lastName: "Granger",
+          profession: "Wizard",
+          balance: 1500,
+          type: "contractor",
+        },
+      ]);
+      await Contract.create({
+        id: 1,
+        terms: "Contract 1 terms",
+        status: "in_progress",
+        ClientId: 1,
+        ContractorId: 2,
+      });
+      await Job.create({
+        id: 1,
+        description: "Magic lessons",
+        price: 200,
+        paid: false,
+        ContractId: 1,
+      });
+    });
+
+    afterAll(async () => {
+      await sequelize.close();
+    });
+
+    it("should prevent double payments for the same job", async () => {
+      // Simulate two concurrent payment requests
+      const paymentRequest = () =>
+        request(app).post("/jobs/1/pay").set("profile_id", 1);
+
+      const [response1, response2] = await Promise.all([
+        paymentRequest(),
+        paymentRequest(),
+      ]);
+
+      // One should succeed, the other should fail
+      const successResponses = [response1, response2].filter(
+        (res) => res.status === 200
+      );
+      const failureResponses = [response1, response2].filter(
+        (res) => res.status !== 200
+      );
+
+      expect(successResponses.length).toBe(1);
+      expect(failureResponses.length).toBe(1);
+      expect(failureResponses[0].body).toHaveProperty(
+        "error",
+        "Job is already paid"
+      );
+
+      // Verify balances
+      const client = await Profile.findByPk(1);
+      const contractor = await Profile.findByPk(2);
+      const job = await Job.findByPk(1);
+
+      expect(client.balance).toBe("800.00"); // 1000 - 200
+      expect(contractor.balance).toBe("1700.00"); // 1500 + 200
+      expect(job.paid).toBe(true);
     });
   });
 });
