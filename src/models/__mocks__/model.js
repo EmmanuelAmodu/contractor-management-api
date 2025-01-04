@@ -1,11 +1,8 @@
 module.exports = {
   sequelize: {
-    transaction: jest.fn().mockImplementation(() => {
-      return {
-        commit: jest.fn(),
-        rollback: jest.fn(),
-      };
-    }),
+    fn: jest.fn((fnName, ...args) => `${fnName}(${args.join(', ')})`), // Return string representation
+    col: jest.fn((colName) => colName), // Return the column name as string
+    literal: jest.fn((literalString) => literalString), // Return the literal string as is
     Transaction: {
       ISOLATION_LEVELS: {
         READ_UNCOMMITTED: 'READ UNCOMMITTED',
@@ -21,6 +18,7 @@ module.exports = {
     Op: {
       or: Symbol.for('or'),
       ne: Symbol.for('ne'),
+      between: Symbol.for('between'),
     },
   },
   Profile: {

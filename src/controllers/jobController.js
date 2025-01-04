@@ -1,5 +1,6 @@
 const { Job, Contract, Profile, IdempotencyKey, sequelize } = require('../models/model');
 const logger = require('../utils/logger');
+const { Op, Transaction } = require('sequelize');
 
 const getUnpaidJobs = async (req, res) => {
     const profileId = req.profile.id;
@@ -9,7 +10,7 @@ const getUnpaidJobs = async (req, res) => {
         include: {
             model: Contract,
             where: {
-                [Contract.sequelize.Op.or]: [{ ClientId: profileId }, { ContractorId: profileId }],
+                [Op.or]: [{ ClientId: profileId }, { ContractorId: profileId }],
                 status: 'in_progress',
             },
         },
@@ -25,7 +26,7 @@ const payJob = async (req, res) => {
 
   // Start a transaction with SERIALIZABLE isolation level
   const t = await sequelize.transaction({
-      isolationLevel: sequelize.Transaction.ISOLATION_LEVELS.SERIALIZABLE,
+      isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE,
   });
 
   try {

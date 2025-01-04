@@ -1,4 +1,3 @@
-// src/controllers/adminController.js
 const { Job, Contract, Profile, sequelize } = require('../models/model');
 const { Op } = require('sequelize');
 const Joi = require('joi');
