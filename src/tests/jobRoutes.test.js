@@ -66,12 +66,15 @@ describe('Job Routes', () => {
 
   describe('POST /jobs/:job_id/pay', () => {
     it('should pay for a job successfully', async () => {
+      const idempotencyKey = 'unique-key-123';
+
       // Ensure client has sufficient balance
       await Profile.update({ balance: 1000 }, { where: { id: 1 } });
 
       const response = await request(app)
         .post('/jobs/1/pay')
         .set('profile_id', 1)
+        .set('Idempotency-Key', idempotencyKey)
         .expect(200);
 
       expect(response.body).toHaveProperty('message', 'Payment successful');
@@ -80,9 +83,12 @@ describe('Job Routes', () => {
     });
 
     it('should return 404 if the job does not exist or does not belong to the profile', async () => {
+      const idempotencyKey = 'unique-key-123';
+
       const response = await request(app)
         .post('/jobs/999/pay')
         .set('profile_id', 1)
+        .set('Idempotency-Key', idempotencyKey)
         .expect(404);
 
       expect(response.body).toHaveProperty('error', 'Job not found or access denied');

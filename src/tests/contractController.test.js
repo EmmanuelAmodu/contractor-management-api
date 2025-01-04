@@ -1,5 +1,6 @@
 const { getContractById, getContracts } = require('../controllers/contractController');
 const { Contract } = require('../models/model');
+const { Op } = require('sequelize');
 
 jest.mock("../models/model"); // Mock models
 
