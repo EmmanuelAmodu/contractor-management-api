@@ -89,7 +89,7 @@ describe("Job Controller Unit Tests", () => {
         commit: jest.fn(),
         rollback: jest.fn(),
         LOCK: {
-          UPDATE: sequelize.Transaction.LOCK.UPDATE, // Ensures LOCK.UPDATE is defined
+          UPDATE: 'UPDATE', // Mock LOCK.UPDATE
         },
       };
       sequelize.transaction.mockResolvedValue(transaction);
@@ -118,6 +118,7 @@ describe("Job Controller Unit Tests", () => {
       };
       req.profile = mockClient;
 
+      // Mock the necessary model methods
       Job.findOne.mockResolvedValue(mockJob);
       Contract.findOne.mockResolvedValue({
         Contractor: mockContractor,
@@ -126,14 +127,18 @@ describe("Job Controller Unit Tests", () => {
 
       await payJob(req, res);
 
-      expect(Job.findOne).toHaveBeenCalledWith({
-        where: { id: 1 },
-        include: {
-          model: Contract,
-          where: { ClientId: 1 },
-          include: { model: Profile, as: "Contractor" },
-        },
-      });
+      expect(Job.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 1 },
+          include: {
+            model: Contract,
+            where: { ClientId: 1 },
+            include: { model: Profile, as: "Contractor" },
+          },
+          transaction: transaction,
+          lock: 'UPDATE',
+        })
+      );
 
       expect(mockClient.balance).toBe(100); // 200 - 100
       expect(mockContractor.balance).toBe(150); // 50 + 100
@@ -253,25 +258,26 @@ describe("Job Controller Unit Tests", () => {
     });
 
     it("should prevent double payments for the same job", async () => {
-      // Simulate two concurrent payment requests
-      const paymentRequest1 = () =>
-        payJob(
-          { params: { job_id: 1 }, profile: { id: 1 } },
-          {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-          }
-        );
-      const paymentRequest2 = () =>
-        payJob(
-          { params: { job_id: 1 }, profile: { id: 1 } },
-          {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-          }
-        );
+      // Define req and res for both requests
+      const req1 = {
+        params: { job_id: 1 },
+        profile: { id: 1 },
+      };
+      const res1 = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
 
-      // Mock Job.findOne to return the job first time, then already paid
+      const req2 = {
+        params: { job_id: 1 },
+        profile: { id: 1 },
+      };
+      const res2 = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
+
+      // Mock Job.findOne behavior
       const mockContractor = {
         id: 2,
         balance: 50,
@@ -292,34 +298,38 @@ describe("Job Controller Unit Tests", () => {
         balance: 1000,
         save: jest.fn().mockResolvedValue(true),
       };
-      req.profile = mockClient;
 
-      // First payment succeeds
-      Job.findOne.mockResolvedValueOnce(mockJob);
+      // Mock the necessary model methods
+      Job.findOne
+        .mockResolvedValueOnce(mockJob) // First payment
+        .mockResolvedValueOnce({ ...mockJob, paid: true }); // Second payment attempts to pay again
       Contract.findOne.mockResolvedValueOnce({
         Contractor: mockContractor,
       });
       Profile.findOne.mockResolvedValueOnce(mockContractor);
+      Profile.findOne.mockResolvedValueOnce(mockContractor); // For second payment
 
-      // Second payment attempts to pay the same job again
-      Job.findOne.mockResolvedValueOnce({ ...mockJob, paid: true });
-      Contract.findOne.mockResolvedValueOnce({
-        Contractor: mockContractor,
-      });
-      Profile.findOne.mockResolvedValueOnce(mockContractor);
+      // Mock sequelize.transaction
+      const transaction = {
+        commit: jest.fn(),
+        rollback: jest.fn(),
+        LOCK: {
+          UPDATE: 'UPDATE',
+        },
+      };
+      sequelize.transaction.mockResolvedValue(transaction);
 
       // Execute both payment requests concurrently
-      const [response1, response2] = await Promise.all([
-        paymentRequest1(),
-        paymentRequest2(),
-      ]);
+      const payment1 = payJob(req1, res1);
+      const payment2 = payJob(req2, res2);
+      await Promise.all([payment1, payment2]);
 
-      // Check one succeeded and the other failed
-      const successResponses = [response1, response2].filter(
-        (res) => res.json.mock.calls[0][0].message === "Payment successful"
+      // One should succeed, the other should fail
+      const successResponses = [res1, res2].filter(
+        (res) => res.json.mock.calls.some(call => call[0].message === "Payment successful")
       );
-      const failureResponses = [response1, response2].filter(
-        (res) => res.json.mock.calls[0][0].error === "Job is already paid"
+      const failureResponses = [res1, res2].filter(
+        (res) => res.json.mock.calls.some(call => call[0].error === "Job is already paid")
       );
 
       expect(successResponses.length).toBe(1);
