@@ -10,21 +10,24 @@ describe('Contract Routes', () => {
     await Profile.bulkCreate([
       { id: 1, firstName: 'Harry', lastName: 'Potter', profession: 'Wizard', balance: 1000, type: 'client' },
       { id: 2, firstName: 'Hermione', lastName: 'Granger', profession: 'Wizard', balance: 1500, type: 'contractor' },
+      { id: 3, firstName: 'Ron', lastName: 'Weasley', profession: 'Wizard', balance: 500, type: 'client' }, // New profile with no contracts
     ]);
-    await Contract.create({
-      id: 1,
-      terms: 'Contract 1 terms',
-      status: 'in_progress',
-      ClientId: 1,
-      ContractorId: 2,
-    });
-    await Contract.create({
-      id: 2,
-      terms: 'Contract 2 terms',
-      status: 'terminated',
-      ClientId: 1,
-      ContractorId: 2,
-    });
+    await Contract.bulkCreate([
+      {
+        id: 1,
+        terms: 'Contract 1 terms',
+        status: 'in_progress',
+        ClientId: 1,
+        ContractorId: 2,
+      },
+      {
+        id: 2,
+        terms: 'Contract 2 terms',
+        status: 'terminated',
+        ClientId: 1,
+        ContractorId: 2,
+      },
+    ]);
   });
 
   afterAll(async () => {
@@ -45,18 +48,18 @@ describe('Contract Routes', () => {
 
     it('should return 404 if the contract does not belong to the profile', async () => {
       const response = await request(app)
-        .get('/contracts/999')
+        .get('/contracts/999') // Non-existent contract
         .set('profile_id', 1)
         .expect(404);
 
       expect(response.body).toHaveProperty('error', 'Contract not found or access denied');
     });
 
-    it('should return 404 if the contract is terminated', async () => {
+    it('should return 200 and the contract even if it is terminated', async () => {
       const response = await request(app)
-        .get('/contracts/2')
+        .get('/contracts/2') // Terminated contract
         .set('profile_id', 1)
-        .expect(200); // Note: The endpoint `/contracts/:id` doesn't filter by status
+        .expect(200); // As per the controller, `/contracts/:id` does not filter by status
 
       expect(response.body).toHaveProperty('id', 2);
       expect(response.body).toHaveProperty('status', 'terminated');
@@ -73,7 +76,7 @@ describe('Contract Routes', () => {
     it('should return 401 if profile_id is invalid', async () => {
       const response = await request(app)
         .get('/contracts/1')
-        .set('profile_id', 999)
+        .set('profile_id', 999) // Non-existent profile
         .expect(401);
 
       expect(response.body).toHaveProperty('error', 'Profile not found');
@@ -95,7 +98,7 @@ describe('Contract Routes', () => {
     it('should return an empty array if no contracts are found', async () => {
       const response = await request(app)
         .get('/contracts')
-        .set('profile_id', 2)
+        .set('profile_id', 3) // Profile with no contracts
         .expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
@@ -129,7 +132,7 @@ describe('Contract Routes', () => {
     it('should return 401 if profile_id is invalid', async () => {
       const response = await request(app)
         .get('/contracts')
-        .set('profile_id', 999)
+        .set('profile_id', 999) // Non-existent profile
         .expect(401);
 
       expect(response.body).toHaveProperty('error', 'Profile not found');
