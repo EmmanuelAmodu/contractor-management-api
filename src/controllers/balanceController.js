@@ -23,7 +23,7 @@ const depositBalance = async (req, res) => {
     const client = await Profile.findOne({
       where: { id: userId, type: "client" },
       transaction: t,
-      lock: "UPDATE", // Use string literal
+      lock: "UPDATE",
     });
 
     if (!client) {
@@ -40,7 +40,7 @@ const depositBalance = async (req, res) => {
           where: { ClientId: userId, status: "in_progress" },
         },
         transaction: t,
-        lock: "SHARE", // Use string literal
+        lock: "SHARE",
       })) || 0;
 
     const depositLimit = totalJobsToPay * 0.25;

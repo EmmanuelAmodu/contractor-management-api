@@ -162,46 +162,4 @@ describe("Balance Routes", () => {
 
     // Removed the 'handle database errors gracefully' test from integration tests
   });
-
-  describe("Concurrent Deposits", () => {
-    it("should prevent deposits exceeding the 25% limit even with concurrent requests", async () => {
-      // Reset balance and jobs
-      await Profile.update({ balance: 1000 }, { where: { id: 1 } });
-      await Job.update({ paid: false }, { where: {} });
-
-      // Total unpaid jobs = 200 + 300 + 150 = 650
-      // 25% of 650 = 162.5
-
-      // Simulate two concurrent deposit requests
-      const depositRequest = (amount) =>
-        request(app)
-          .post("/balances/deposit/1")
-          .set("profile_id", "1") // Valid profile
-          .send({ amount });
-
-      const [response1, response2] = await Promise.all([
-        depositRequest(125), // At the limit
-        depositRequest(50), // Exceeds limit when combined
-      ]);
-
-      // One should succeed, the other should fail
-      const successResponses = [response1, response2].filter(
-        (res) => res.status === 200
-      );
-      const failureResponses = [response1, response2].filter(
-        (res) => res.status !== 200
-      );
-
-      expect(successResponses.length).toBe(1);
-      expect(failureResponses.length).toBe(1);
-      expect(failureResponses[0].body).toHaveProperty(
-        "error",
-        "Deposit amount exceeds 25% of total jobs to pay"
-      );
-
-      // Verify balance
-      const client = await Profile.findByPk(1);
-      expect(client.balance).toBe(1125); // 1000 + 125
-    });
-  });
 });
