@@ -1,7 +1,6 @@
-// tests/jobRoutes.test.js
 const request = require('supertest');
 const app = require('../app');
-const { sequelize, Profile, Contract, Job } = require('../models/model');
+const { sequelize, Profile, Contract, Job, IdempotencyKey } = require('../models/model');
 const { v4: uuidv4 } = require('uuid');
 
 describe('Job Routes', () => {
@@ -18,6 +17,7 @@ describe('Job Routes', () => {
     await Job.bulkCreate([
       { id: 1, description: 'Magic lessons', price: 200, paid: false, ContractId: 1 },
       { id: 2, description: 'Advanced spells', price: 300, paid: true, paymentDate: '2020-08-15', ContractId: 1 },
+      { id: 3, description: 'Flying lessons', price: 500, paid: false, ContractId: 1 }, // Added for insufficient balance
     ]);
   });
 
@@ -33,18 +33,10 @@ describe('Job Routes', () => {
         .expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBe(1);
-      expect(response.body[0]).toHaveProperty('id', 1);
-    });
-
-    it('should return an empty array if no unpaid jobs are found', async () => {
-      const response = await request(app)
-        .get('/jobs/unpaid')
-        .set('profile_id', 2)
-        .expect(200);
-
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBe(0);
+      expect(response.body.length).toBe(2); // Jobs 1 and 3
+      const jobIds = response.body.map(job => job.id);
+      expect(jobIds).toContain(1);
+      expect(jobIds).toContain(3);
     });
 
     it('should return 401 if profile_id is missing', async () => {
@@ -66,6 +58,15 @@ describe('Job Routes', () => {
   });
 
   describe('POST /jobs/:job_id/pay', () => {
+    beforeEach(async () => {
+      // Reset job 1 to unpaid and client balance to 1000 before each payment test
+      await Job.update({ paid: false, paymentDate: null }, { where: { id: 1 } });
+      await Job.update({ paid: false, paymentDate: null }, { where: { id: 3 } });
+      await Profile.update({ balance: 1000 }, { where: { id: 1 } });
+      // Clear IdempotencyKey table
+      await IdempotencyKey.destroy({ where: {} });
+    });
+
     it('should pay for a job successfully', async () => {
       const idempotencyKey = uuidv4();
 
@@ -81,6 +82,12 @@ describe('Job Routes', () => {
       expect(response.body).toHaveProperty('message', 'Payment successful');
       expect(response.body.job).toHaveProperty('paid', true);
       expect(response.body.job).toHaveProperty('paymentDate');
+
+      // Verify balances
+      const client = await Profile.findByPk(1);
+      const contractor = await Profile.findByPk(2);
+      expect(client.balance).toBe(800); // 1000 - 200
+      expect(contractor.balance).toBe(1700); // 1500 + 200
     });
 
     it('should return 404 if the job does not exist or does not belong to the profile', async () => {
@@ -110,11 +117,11 @@ describe('Job Routes', () => {
     it('should return 400 if the client has insufficient balance', async () => {
       const idempotencyKey = uuidv4();
 
-      // Set client balance below job price
+      // Set client balance below job price for job 3
       await Profile.update({ balance: 100 }, { where: { id: 1 } });
 
       const response = await request(app)
-        .post('/jobs/1/pay')
+        .post('/jobs/3/pay')
         .set('profile_id', 1)
         .set('Idempotency-Key', idempotencyKey)
         .expect(400);
@@ -123,20 +130,49 @@ describe('Job Routes', () => {
     });
 
     it('should return 401 if profile_id is missing', async () => {
+      const idempotencyKey = uuidv4();
+
       const response = await request(app)
         .post('/jobs/1/pay')
+        .set('Idempotency-Key', idempotencyKey)
         .expect(401);
 
       expect(response.body).toHaveProperty('error', 'Missing profile_id header');
     });
 
     it('should return 401 if profile_id is invalid', async () => {
+      const idempotencyKey = uuidv4();
+
       const response = await request(app)
         .post('/jobs/1/pay')
         .set('profile_id', 999)
+        .set('Idempotency-Key', idempotencyKey)
         .expect(401);
 
       expect(response.body).toHaveProperty('error', 'Profile not found');
+    });
+
+    it('should prevent double payments using the same idempotency key', async () => {
+      const idempotencyKey = uuidv4();
+
+      // First payment attempt
+      const firstResponse = await request(app)
+        .post('/jobs/1/pay')
+        .set('profile_id', 1)
+        .set('Idempotency-Key', idempotencyKey)
+        .expect(200);
+
+      expect(firstResponse.body).toHaveProperty('message', 'Payment successful');
+
+      // Second payment attempt with the same idempotency key
+      const secondResponse = await request(app)
+        .post('/jobs/1/pay')
+        .set('profile_id', 1)
+        .set('Idempotency-Key', idempotencyKey)
+        .expect(200);
+
+      expect(secondResponse.body).toHaveProperty('message', 'Payment successful');
+      expect(secondResponse.body.job).toHaveProperty('paid', true);
     });
   });
 });

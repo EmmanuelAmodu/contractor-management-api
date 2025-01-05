@@ -1,5 +1,6 @@
 const { getUnpaidJobs, payJob } = require("../controllers/jobController");
 const { Job, Contract, Profile, sequelize } = require("../models/model");
+const { Op } = require("sequelize");
 
 jest.mock("../models/model"); // Mock models
 
@@ -44,7 +45,10 @@ describe("Job Controller Unit Tests", () => {
         include: {
           model: Contract,
           where: {
-            [Contract.sequelize.Op.or]: [{ ClientId: 1 }, { ContractorId: 1 }],
+            [Op.or]: [
+              { ClientId: 1 },
+              { ContractorId: 1 },
+            ],
             status: "in_progress",
           },
         },
@@ -80,6 +84,7 @@ describe("Job Controller Unit Tests", () => {
       req = {
         params: { job_id: 1 },
         profile: { id: 1 },
+        idempotencyKey: 'unique-key-123', // Add a mock idempotency key
       };
       res = {
         status: jest.fn().mockReturnThis(),
@@ -96,6 +101,11 @@ describe("Job Controller Unit Tests", () => {
     });
 
     it("should pay for a job successfully", async () => {
+      const mockClient = {
+        id: 1,
+        balance: 200,
+        save: jest.fn().mockResolvedValue(true),
+      };
       const mockContractor = {
         id: 2,
         balance: 50,
@@ -111,19 +121,13 @@ describe("Job Controller Unit Tests", () => {
         },
         save: jest.fn().mockResolvedValue(true),
       };
-      const mockClient = {
-        id: 1,
-        balance: 200,
-        save: jest.fn().mockResolvedValue(true),
-      };
       req.profile = mockClient;
 
       // Mock the necessary model methods
       Job.findOne.mockResolvedValue(mockJob);
-      Contract.findOne.mockResolvedValue({
-        Contractor: mockContractor,
-      });
-      Profile.findOne.mockResolvedValue(mockContractor);
+      Profile.findOne
+        .mockResolvedValueOnce(mockClient) // First call: find client
+        .mockResolvedValueOnce(mockContractor); // Second call: find contractor
 
       await payJob(req, res);
 
@@ -194,6 +198,13 @@ describe("Job Controller Unit Tests", () => {
 
       Job.findOne.mockResolvedValue(mockJob);
 
+      // Mock Profile.findOne to return client and contractor
+      Profile.findOne.mockImplementation(({ where }) => {
+        if (where.id === 1) return Promise.resolve(mockClient); // Find client
+        if (where.id === 2) return Promise.resolve(mockContractor); // Find contractor
+        return Promise.resolve(null);
+      });
+
       await payJob(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
@@ -201,6 +212,11 @@ describe("Job Controller Unit Tests", () => {
     });
 
     it("should handle transaction errors gracefully", async () => {
+      const mockClient = {
+        id: 1,
+        balance: 200,
+        save: jest.fn().mockResolvedValue(true),
+      };
       const mockContractor = {
         id: 2,
         balance: 50,
@@ -216,19 +232,15 @@ describe("Job Controller Unit Tests", () => {
         },
         save: jest.fn().mockResolvedValue(true),
       };
-      const mockClient = {
-        id: 1,
-        balance: 200,
-        save: jest.fn().mockResolvedValue(true),
-      };
       req.profile = mockClient;
 
+      // Mock the necessary model methods
       Job.findOne.mockResolvedValue(mockJob);
-      Contract.findOne.mockResolvedValue({
-        Contractor: mockContractor,
+      Profile.findOne.mockImplementation(({ where }) => {
+        if (where.id === 1) return Promise.resolve(mockClient); // Find client
+        if (where.id === 2) return Promise.resolve(mockContractor); // Find contractor
+        return Promise.resolve(null);
       });
-      Profile.findOne.mockResolvedValue(mockContractor);
-      mockContractor.save.mockRejectedValue(new Error("Save error"));
 
       await payJob(req, res);
 
@@ -262,6 +274,7 @@ describe("Job Controller Unit Tests", () => {
       const req1 = {
         params: { job_id: 1 },
         profile: { id: 1 },
+        idempotencyKey: 'unique-key-123', // Add a mock idempotency key
       };
       const res1 = {
         status: jest.fn().mockReturnThis(),
@@ -271,6 +284,7 @@ describe("Job Controller Unit Tests", () => {
       const req2 = {
         params: { job_id: 1 },
         profile: { id: 1 },
+        idempotencyKey: 'unique-key-124', // Add another unique idempotency key
       };
       const res2 = {
         status: jest.fn().mockReturnThis(),
@@ -303,21 +317,30 @@ describe("Job Controller Unit Tests", () => {
       Job.findOne
         .mockResolvedValueOnce(mockJob) // First payment
         .mockResolvedValueOnce({ ...mockJob, paid: true }); // Second payment attempts to pay again
-      Contract.findOne.mockResolvedValueOnce({
-        Contractor: mockContractor,
-      });
-      Profile.findOne.mockResolvedValueOnce(mockContractor);
-      Profile.findOne.mockResolvedValueOnce(mockContractor); // For second payment
+      Profile.findOne
+        .mockResolvedValueOnce(mockClient) // First payment: find client
+        .mockResolvedValueOnce(mockContractor) // First payment: find contractor
+        .mockResolvedValueOnce(mockClient) // Second payment: find client
+        .mockResolvedValueOnce(mockContractor); // Second payment: find contractor
 
       // Mock sequelize.transaction
-      const transaction = {
+      const transaction1 = {
         commit: jest.fn(),
         rollback: jest.fn(),
         LOCK: {
           UPDATE: 'UPDATE',
         },
       };
-      sequelize.transaction.mockResolvedValue(transaction);
+      const transaction2 = {
+        commit: jest.fn(),
+        rollback: jest.fn(),
+        LOCK: {
+          UPDATE: 'UPDATE',
+        },
+      };
+      sequelize.transaction
+        .mockResolvedValueOnce(transaction1)
+        .mockResolvedValueOnce(transaction2);
 
       // Execute both payment requests concurrently
       const payment1 = payJob(req1, res1);

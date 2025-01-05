@@ -17,7 +17,7 @@ const getUnpaidJobs = async (req, res) => {
       include: {
         model: Contract,
         where: {
-          [Contract.sequelize.Op.or]: [
+          [Op.or]: [
             { ClientId: profileId },
             { ContractorId: profileId },
           ],
@@ -28,7 +28,7 @@ const getUnpaidJobs = async (req, res) => {
 
     res.json(jobs);
   } catch (error) {
-    logger.error(`Error fetching unpaid jobs: ${error.message}`);
+    logger.error(`Error fetching unpaid jobs: ${error.message}`, { stack: error.stack });
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
