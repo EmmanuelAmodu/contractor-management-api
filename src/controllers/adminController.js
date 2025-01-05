@@ -1,5 +1,5 @@
 const { Job, Contract, Profile, sequelize } = require('../models/model');
-const { Op, col, fn, literal } = require('sequelize');
+const { Op, col, fn, literal } = sequelize; // Import Sequelize functions
 const Joi = require('joi');
 
 const bestProfessionSchema = Joi.object({
@@ -46,6 +46,7 @@ const getBestProfession = async (req, res) => {
 
     res.json(bestProfession[0]);
   } catch (err) {
+    console.error('Error in getBestProfession:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
@@ -59,8 +60,8 @@ const getBestClients = async (req, res) => {
   try {
     const bestClients = await Job.findAll({
       attributes: [
-        'Contract.Client.id',
-        [literal("`Contract->Client`.firstName || ' ' || `Contract->Client`.lastName"), 'fullName'],
+        [col('Contract.Client.id'), 'id'],
+        [literal("`Contract->Client`.firstName || ' ' || `Contract->Client`.lastName"), 'fullName'], // Properly quoted
         [fn('SUM', col('price')), 'total_paid'],
       ],
       where: {
@@ -72,12 +73,12 @@ const getBestClients = async (req, res) => {
         include: {
           model: Profile,
           as: 'Client',
-          attributes: ['firstName', 'lastName'], // Include firstName and lastName
+          attributes: ['firstName', 'lastName'], // Include necessary fields
         },
       },
       group: ['Contract.Client.id'],
       order: [[fn('SUM', col('price')), 'DESC']],
-      limit: Number.parseInt(value.limit),
+      limit: Number.parseInt(value.limit, 10),
     });
 
     res.json(bestClients);
