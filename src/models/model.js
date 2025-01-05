@@ -1,9 +1,10 @@
 const Sequelize = require('sequelize');
+const logger = require('../utils/logger');
 
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: './database.sqlite3',
-  logging: false, // Disable logging for testing
+  logging: (msg) => logger.info(msg),
 });
 
 class Profile extends Sequelize.Model {}

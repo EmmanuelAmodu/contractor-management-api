@@ -83,10 +83,10 @@ describe('Admin Routes', () => {
   
       expect(Array.isArray(response.body)).toBe(true);
       expect(response.body.length).toBe(2);
-      expect(response.body[0]).toHaveProperty('id', 1);
+      expect(response.body[0].Contract).toHaveProperty('id', 1);
       expect(response.body[0]).toHaveProperty('fullName', 'Harry Potter');
       expect(response.body[0]).toHaveProperty('total_paid', 500);
-      expect(response.body[1]).toHaveProperty('id', 3);
+      expect(response.body[1].Contract).toHaveProperty('id', 2);
       expect(response.body[1]).toHaveProperty('fullName', 'Ron Weasley');
       expect(response.body[1]).toHaveProperty('total_paid', 150);
     });
