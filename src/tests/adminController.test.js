@@ -7,7 +7,7 @@ const Joi = require('joi');
 
 jest.mock('../models/model');
 
-describe('Admin Controller', () => {
+describe('Admin Controller Unit Tests', () => {
   describe('getBestProfession', () => {
     let req;
     let res;

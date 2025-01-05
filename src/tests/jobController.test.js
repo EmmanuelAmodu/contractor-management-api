@@ -4,7 +4,7 @@ const { Job, Contract, Profile, sequelize } = require("../models/model");
 
 jest.mock("../models/model"); // Mock models
 
-describe("Job Controller", () => {
+describe("Job Controller Unit Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });

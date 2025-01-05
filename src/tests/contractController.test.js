@@ -4,7 +4,7 @@ const { Op } = require('sequelize');
 
 jest.mock("../models/model"); // Mock models
 
-describe('Contract Controller', () => {
+describe('Contract Controller Unit Tests', () => {
   describe('getContractById', () => {
     let req;
     let res;
