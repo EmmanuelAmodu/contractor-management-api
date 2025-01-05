@@ -1,32 +1,38 @@
 const { Contract } = require("../models/model");
 const { Op } = require("sequelize");
 
-const getContractById = async (req, res) => {
-  const { Contract } = req.app.get("models");
-  const { id } = req.params;
-  const profileId = req.profile.id;
+const getContractById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const profileId = req.profile.id;
 
-  const contract = await Contract.findOne({
-    where: {
-      id,
-      [Op.or]: [
-        { ClientId: profileId },
-        { ContractorId: profileId },
-      ],
-    },
-  });
+    const contract = await Contract.findOne({
+      where: {
+        id,
+        [Op.or]: [
+          { ClientId: profileId },
+          { ContractorId: profileId },
+        ],
+      },
+    });
 
-  if (!contract)
-    return res
-      .status(404)
-      .json({ error: "Contract not found or access denied" });
-  res.json(contract);
+    if (!contract) {
+      return res
+        .status(404)
+        .json({ error: "Contract not found or access denied" });
+    }
+
+    res.json(contract);
+  } catch (error) {
+    // Pass the error to Express's error-handling middleware
+    next(error);
+  }
 };
 
 const getContracts = async (req, res, next) => {
   const profileId = req.profile.id;
   const { status } = req.query;
-  const limit = req.query.limit || 10; // Default limit
+  const limit = req.query.limit ? parseInt(req.query.limit) : 10; // Default limit
 
   try {
     const whereClause = {
@@ -41,7 +47,7 @@ const getContracts = async (req, res, next) => {
 
     const contracts = await Contract.findAll({
       where: whereClause,
-      limit: Number.parseInt(limit),
+      limit,
     });
 
     res.json(contracts);
