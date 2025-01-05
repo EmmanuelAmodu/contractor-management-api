@@ -1,5 +1,5 @@
 const { Job, Contract, Profile, sequelize } = require('../models/model');
-const { Op, col, fn, literal } = sequelize; // Import Sequelize functions
+const { Op, col, fn, literal } = require('sequelize');
 const Joi = require('joi');
 
 const bestProfessionSchema = Joi.object({
