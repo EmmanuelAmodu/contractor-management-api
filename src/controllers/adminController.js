@@ -60,7 +60,7 @@ const getBestClients = async (req, res) => {
     const bestClients = await Job.findAll({
       attributes: [
         'Contract.Client.id',
-        [literal(`Contract->Client.firstName || ' ' || Contract->Client.lastName`), 'fullName'],
+        [literal("`Contract->Client`.firstName || ' ' || `Contract->Client`.lastName"), 'fullName'],
         [fn('SUM', col('price')), 'total_paid'],
       ],
       where: {
@@ -72,7 +72,7 @@ const getBestClients = async (req, res) => {
         include: {
           model: Profile,
           as: 'Client',
-          attributes: [],
+          attributes: ['firstName', 'lastName'], // Include firstName and lastName
         },
       },
       group: ['Contract.Client.id'],
@@ -82,7 +82,7 @@ const getBestClients = async (req, res) => {
 
     res.json(bestClients);
   } catch (err) {
-    console.error('Error in getBestClients:', err); // Log the actual error
+    console.error('Error in getBestClients:', err); // Enhanced error logging
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };

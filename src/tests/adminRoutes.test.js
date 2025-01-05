@@ -85,10 +85,10 @@ describe('Admin Routes', () => {
       expect(response.body.length).toBe(2);
       expect(response.body[0]).toHaveProperty('id', 1);
       expect(response.body[0]).toHaveProperty('fullName', 'Harry Potter');
-      expect(response.body[0]).toHaveProperty('total_paid', '500');
+      expect(response.body[0]).toHaveProperty('total_paid', 500);
       expect(response.body[1]).toHaveProperty('id', 3);
       expect(response.body[1]).toHaveProperty('fullName', 'Ron Weasley');
-      expect(response.body[1]).toHaveProperty('total_paid', '150');
+      expect(response.body[1]).toHaveProperty('total_paid', 150);
     });
   
     it('should apply default limit if not specified', async () => {
@@ -98,8 +98,8 @@ describe('Admin Routes', () => {
         .expect(200);
   
       expect(response.body.length).toBe(2); // Default limit is 2
-      expect(response.body[0]).toHaveProperty('total_paid', '500');
-      expect(response.body[1]).toHaveProperty('total_paid', '150');
+      expect(response.body[0]).toHaveProperty('total_paid', 500);
+      expect(response.body[1]).toHaveProperty('total_paid', 150);
     });
   
     it('should return an empty array if no clients are found', async () => {
