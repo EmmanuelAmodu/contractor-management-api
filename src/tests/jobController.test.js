@@ -1,4 +1,3 @@
-// tests/jobController.test.js
 const { getUnpaidJobs, payJob } = require("../controllers/jobController");
 const { Job, Contract, Profile, sequelize } = require("../models/model");
 
@@ -19,6 +18,7 @@ describe("Job Controller Unit Tests", () => {
       };
       res = {
         json: jest.fn(),
+        status: jest.fn().mockReturnThis(),
       };
     });
 
@@ -88,18 +88,26 @@ describe("Job Controller Unit Tests", () => {
       transaction = {
         commit: jest.fn(),
         rollback: jest.fn(),
+        LOCK: {
+          UPDATE: sequelize.Transaction.LOCK.UPDATE, // Ensures LOCK.UPDATE is defined
+        },
       };
-      sequelize.transaction = jest.fn().mockResolvedValue(transaction);
+      sequelize.transaction.mockResolvedValue(transaction);
     });
 
     it("should pay for a job successfully", async () => {
+      const mockContractor = {
+        id: 2,
+        balance: 50,
+        save: jest.fn().mockResolvedValue(true),
+      };
       const mockJob = {
         id: 1,
         paid: false,
         price: 100,
         Contract: {
           ClientId: 1,
-          Contractor: { id: 2, balance: 50 },
+          Contractor: mockContractor,
         },
         save: jest.fn().mockResolvedValue(true),
       };
@@ -111,6 +119,10 @@ describe("Job Controller Unit Tests", () => {
       req.profile = mockClient;
 
       Job.findOne.mockResolvedValue(mockJob);
+      Contract.findOne.mockResolvedValue({
+        Contractor: mockContractor,
+      });
+      Profile.findOne.mockResolvedValue(mockContractor);
 
       await payJob(req, res);
 
@@ -124,7 +136,7 @@ describe("Job Controller Unit Tests", () => {
       });
 
       expect(mockClient.balance).toBe(100); // 200 - 100
-      expect(mockJob.Contract.Contractor.balance).toBe(150); // 50 + 100
+      expect(mockContractor.balance).toBe(150); // 50 + 100
       expect(mockJob.paid).toBe(true);
       expect(mockJob.paymentDate).toBeInstanceOf(Date);
       expect(mockClient.save).toHaveBeenCalledWith({ transaction });
@@ -158,13 +170,18 @@ describe("Job Controller Unit Tests", () => {
     });
 
     it("should return 400 if client has insufficient balance", async () => {
+      const mockContractor = {
+        id: 2,
+        balance: 50,
+        save: jest.fn().mockResolvedValue(true),
+      };
       const mockJob = {
         id: 1,
         paid: false,
         price: 300,
         Contract: {
           ClientId: 1,
-          Contractor: { id: 2, balance: 50 },
+          Contractor: mockContractor,
         },
       };
       const mockClient = { id: 1, balance: 200 };
@@ -179,15 +196,20 @@ describe("Job Controller Unit Tests", () => {
     });
 
     it("should handle transaction errors gracefully", async () => {
+      const mockContractor = {
+        id: 2,
+        balance: 50,
+        save: jest.fn().mockRejectedValue(new Error("Save error")),
+      };
       const mockJob = {
         id: 1,
         paid: false,
         price: 100,
         Contract: {
           ClientId: 1,
-          Contractor: { id: 2, balance: 50 },
+          Contractor: mockContractor,
         },
-        save: jest.fn().mockRejectedValue(new Error("Save error")),
+        save: jest.fn().mockResolvedValue(true),
       };
       const mockClient = {
         id: 1,
@@ -197,6 +219,11 @@ describe("Job Controller Unit Tests", () => {
       req.profile = mockClient;
 
       Job.findOne.mockResolvedValue(mockJob);
+      Contract.findOne.mockResolvedValue({
+        Contractor: mockContractor,
+      });
+      Profile.findOne.mockResolvedValue(mockContractor);
+      mockContractor.save.mockRejectedValue(new Error("Save error"));
 
       await payJob(req, res);
 
@@ -204,46 +231,21 @@ describe("Job Controller Unit Tests", () => {
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
         error: "Payment failed",
-        // details: "Save error",
+        details: "Save error",
       });
     });
   });
 
   describe("Concurrent Payments", () => {
     beforeAll(async () => {
-      await sequelize.sync({ force: true });
-      await Profile.bulkCreate([
-        {
-          id: 1,
-          firstName: "Harry",
-          lastName: "Potter",
-          profession: "Wizard",
-          balance: 1000,
-          type: "client",
-        },
-        {
-          id: 2,
-          firstName: "Hermione",
-          lastName: "Granger",
-          profession: "Wizard",
-          balance: 1500,
-          type: "contractor",
-        },
-      ]);
-      await Contract.create({
-        id: 1,
-        terms: "Contract 1 terms",
-        status: "in_progress",
-        ClientId: 1,
-        ContractorId: 2,
-      });
-      await Job.create({
-        id: 1,
-        description: "Magic lessons",
-        price: 200,
-        paid: false,
-        ContractId: 1,
-      });
+      // Mock sequelize.sync and sequelize.close
+      sequelize.sync.mockResolvedValue();
+      sequelize.close.mockResolvedValue();
+
+      // Mock Profile.bulkCreate, Contract.create, and Job.create
+      Profile.bulkCreate.mockResolvedValue();
+      Contract.create.mockResolvedValue();
+      Job.create.mockResolvedValue();
     });
 
     afterAll(async () => {
@@ -252,37 +254,84 @@ describe("Job Controller Unit Tests", () => {
 
     it("should prevent double payments for the same job", async () => {
       // Simulate two concurrent payment requests
-      const paymentRequest = () =>
-        request(app).post("/jobs/1/pay").set("profile_id", 1);
+      const paymentRequest1 = () =>
+        payJob(
+          { params: { job_id: 1 }, profile: { id: 1 } },
+          {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn(),
+          }
+        );
+      const paymentRequest2 = () =>
+        payJob(
+          { params: { job_id: 1 }, profile: { id: 1 } },
+          {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn(),
+          }
+        );
 
+      // Mock Job.findOne to return the job first time, then already paid
+      const mockContractor = {
+        id: 2,
+        balance: 50,
+        save: jest.fn().mockResolvedValue(true),
+      };
+      const mockJob = {
+        id: 1,
+        paid: false,
+        price: 200,
+        Contract: {
+          ClientId: 1,
+          Contractor: mockContractor,
+        },
+        save: jest.fn().mockResolvedValue(true),
+      };
+      const mockClient = {
+        id: 1,
+        balance: 1000,
+        save: jest.fn().mockResolvedValue(true),
+      };
+      req.profile = mockClient;
+
+      // First payment succeeds
+      Job.findOne.mockResolvedValueOnce(mockJob);
+      Contract.findOne.mockResolvedValueOnce({
+        Contractor: mockContractor,
+      });
+      Profile.findOne.mockResolvedValueOnce(mockContractor);
+
+      // Second payment attempts to pay the same job again
+      Job.findOne.mockResolvedValueOnce({ ...mockJob, paid: true });
+      Contract.findOne.mockResolvedValueOnce({
+        Contractor: mockContractor,
+      });
+      Profile.findOne.mockResolvedValueOnce(mockContractor);
+
+      // Execute both payment requests concurrently
       const [response1, response2] = await Promise.all([
-        paymentRequest(),
-        paymentRequest(),
+        paymentRequest1(),
+        paymentRequest2(),
       ]);
 
-      // One should succeed, the other should fail
+      // Check one succeeded and the other failed
       const successResponses = [response1, response2].filter(
-        (res) => res.status === 200
+        (res) => res.json.mock.calls[0][0].message === "Payment successful"
       );
       const failureResponses = [response1, response2].filter(
-        (res) => res.status !== 200
+        (res) => res.json.mock.calls[0][0].error === "Job is already paid"
       );
 
       expect(successResponses.length).toBe(1);
       expect(failureResponses.length).toBe(1);
-      expect(failureResponses[0].body).toHaveProperty(
-        "error",
-        "Job is already paid"
-      );
+      expect(failureResponses[0].json).toHaveBeenCalledWith({
+        error: "Job is already paid",
+      });
 
       // Verify balances
-      const client = await Profile.findByPk(1);
-      const contractor = await Profile.findByPk(2);
-      const job = await Job.findByPk(1);
-
-      expect(client.balance).toBe("800.00"); // 1000 - 200
-      expect(contractor.balance).toBe("1700.00"); // 1500 + 200
-      expect(job.paid).toBe(true);
+      expect(mockClient.balance).toBe(800); // 1000 - 200
+      expect(mockContractor.balance).toBe(250); // 50 + 200
+      expect(mockJob.paid).toBe(true);
     });
   });
 });

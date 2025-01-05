@@ -3,6 +3,9 @@ module.exports = {
     fn: jest.fn((fnName, ...args) => `${fnName}(${args.join(', ')})`), // Return string representation
     col: jest.fn((colName) => colName), // Return the column name as string
     literal: jest.fn((literalString) => literalString), // Return the literal string as is
+    sync: jest.fn(),
+    close: jest.fn(),
+    transaction: jest.fn(),
     Transaction: {
       ISOLATION_LEVELS: {
         READ_UNCOMMITTED: 'READ UNCOMMITTED',
@@ -27,16 +30,22 @@ module.exports = {
     sum: jest.fn(),
     create: jest.fn(),
     findByPk: jest.fn(),
+    bulkCreate: jest.fn(),
     update: jest.fn(),
+    save: jest.fn(),
   },
   Contract: {
     findAll: jest.fn(),
     findOne: jest.fn(),
     create: jest.fn(),
+    sequelize: {
+      Op: jest.fn(),
+    },
   },
   Job: {
     findAll: jest.fn(),
     findOne: jest.fn(),
+    bulkCreate: jest.fn(),
     create: jest.fn(),
     sum: jest.fn(),
   },

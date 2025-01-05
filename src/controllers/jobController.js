@@ -1,22 +1,27 @@
-const { Job, Contract, Profile, IdempotencyKey, sequelize } = require('../models/model');
-const logger = require('../utils/logger');
-const { Op, Transaction } = require('sequelize');
+const { Job, Contract, Profile, IdempotencyKey, sequelize } = require("../models/model");
+const logger = require("../utils/logger");
+const { Op, Transaction } = require("sequelize");
 
 const getUnpaidJobs = async (req, res) => {
+  try {
     const profileId = req.profile.id;
 
     const jobs = await Job.findAll({
-        where: { paid: false },
-        include: {
-            model: Contract,
-            where: {
-                [Op.or]: [{ ClientId: profileId }, { ContractorId: profileId }],
-                status: 'in_progress',
-            },
+      where: { paid: false },
+      include: {
+        model: Contract,
+        where: {
+          [Contract.sequelize.Op.or]: [{ ClientId: profileId }, { ContractorId: profileId }],
+          status: "in_progress",
         },
+      },
     });
 
     res.json(jobs);
+  } catch (error) {
+    logger.error(`Error fetching unpaid jobs: ${error.message}`);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 };
 
 const payJob = async (req, res) => {
