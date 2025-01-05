@@ -32,7 +32,7 @@ const getContractById = async (req, res, next) => {
 const getContracts = async (req, res, next) => {
   const profileId = req.profile.id;
   const { status } = req.query;
-  const limit = req.query.limit ? parseInt(req.query.limit) : 10; // Default limit
+  const limit = req.query.limit ? Number.parseInt(req.query.limit) : 10; // Default limit
 
   try {
     const whereClause = {

@@ -1,9 +1,7 @@
-// src/tests/contractController.test.js
 const { getContractById, getContracts } = require('../controllers/contractController');
 const { Contract } = require('../models/model');
 const { Op } = require('sequelize');
 
-// Mock the Contract model
 jest.mock("../models/model");
 
 describe('Contract Controller Unit Tests', () => {
@@ -16,7 +14,6 @@ describe('Contract Controller Unit Tests', () => {
       req = {
         params: { id: 1 },
         profile: { id: 1 },
-        // Removed 'app' property as it's not used by the controller
       };
       res = {
         status: jest.fn().mockReturnThis(),
@@ -63,8 +60,7 @@ describe('Contract Controller Unit Tests', () => {
     });
 
     it('should return 404 if the contract does not belong to the profile', async () => {
-      const mockContract = { id: 1, ClientId: 2, ContractorId: 3 };
-      Contract.findOne.mockResolvedValue(mockContract);
+      Contract.findOne.mockResolvedValue(null);
 
       await getContractById(req, res, next);
 
