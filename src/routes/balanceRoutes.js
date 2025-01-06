@@ -16,18 +16,22 @@ const { getProfile } = require('../middleware/getProfile');
  *   post:
  *     summary: Deposit money into a client's balance
  *     tags: [Balances]
+ *     security:
+ *       - profileAuth: []
  *     parameters:
  *       - in: path
  *         name: userId
  *         required: true
  *         schema:
  *           type: integer
+ *           minimum: 1
  *         description: ID of the user (client) to deposit into
  *       - in: header
  *         name: profile_id
  *         required: true
  *         schema:
  *           type: integer
+ *           minimum: 1
  *         description: Profile ID of the authenticated user making the deposit
  *     requestBody:
  *       required: true
@@ -65,41 +69,33 @@ const { getProfile } = require('../middleware/getProfile');
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Deposit amount exceeds 25% of total jobs to pay"
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               error: "Deposit amount exceeds 25% of total jobs to pay"
  *       401:
- *         description: Unauthorized - Missing or invalid profile_id
+ *         description: Unauthorized - Missing or invalid authentication token
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Missing or invalid profile_id"
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               error: "Missing or invalid authentication token"
  *       404:
- *         description: Client not found
+ *         description: Not Found - Client not found
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Client not found"
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               error: "Client not found"
  *       500:
  *         description: Internal Server Error
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Deposit failed"
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               error: "Deposit failed"
  */
 router.post('/balances/deposit/:userId', getProfile, depositBalance);
 

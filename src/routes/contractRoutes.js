@@ -17,7 +17,7 @@ const { getProfile } = require('../middleware/getProfile');
  *     summary: Retrieve a specific contract by its ID
  *     tags: [Contracts]
  *     security:
- *       - bearerAuth: []
+ *       - profileAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -90,7 +90,7 @@ router.get('/contracts/:id', getProfile, getContractById);
  *     summary: Retrieve all non-terminated contracts for the authenticated user
  *     tags: [Contracts]
  *     security:
- *       - bearerAuth: []
+ *       - profileAuth: []
  *     parameters:
  *       - in: header
  *         name: profile_id

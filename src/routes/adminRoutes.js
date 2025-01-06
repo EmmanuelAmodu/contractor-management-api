@@ -18,7 +18,7 @@ const authorizeAdmin = require('../middleware/authorizeAdmin');
  *     summary: Retrieve the profession that earned the most within a specified date range
  *     tags: [Admin]
  *     security:
- *       - bearerAuth: []
+ *       - profileAuth: []
  *     parameters:
  *       - in: query
  *         name: start
@@ -86,7 +86,7 @@ router.get('/admin/best-profession', getProfile, authorizeAdmin, getBestProfessi
  *     summary: Retrieve the top-paying clients within a specified date range
  *     tags: [Admin]
  *     security:
- *       - bearerAuth: []
+ *       - profileAuth: []
  *     parameters:
  *       - in: query
  *         name: start

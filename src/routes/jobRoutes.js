@@ -19,7 +19,7 @@ const { financialLimiter } = require('../middleware/rateLimiter'); // Assuming y
  *     summary: Retrieve all unpaid jobs for the authenticated user
  *     tags: [Jobs]
  *     security:
- *       - bearerAuth: []
+ *       - profileAuth: []
  *     parameters:
  *       - in: header
  *         name: profile_id
@@ -80,7 +80,7 @@ router.get('/jobs/unpaid', getProfile, getUnpaidJobs);
  *     summary: Pay for a specific job
  *     tags: [Jobs]
  *     security:
- *       - bearerAuth: []
+ *       - profileAuth: []
  *     parameters:
  *       - in: path
  *         name: job_id

@@ -97,7 +97,12 @@ When you have finished the assignment, zip your repo (make sure to include .git 
 
 Thank you and good luck! 🙏
 
-# Implementation Details
+## Implementation Details
 
 ### Run with docker compose
+
 `$ docker-compose up --build`
+
+### Documentation
+
+So see the full doc please go to http://localhost:3002/api-docs

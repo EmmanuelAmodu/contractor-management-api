@@ -32,56 +32,16 @@ const options = {
         ],
         components: {
             securitySchemes: {
-                bearerAuth: {
-                    type: 'http',
-                    scheme: 'bearer',
-                    bearerFormat: 'JWT',
+                profileAuth: { // Custom Security Scheme
+                    type: 'apiKey',
+                    in: 'header',
+                    name: 'profile_id',
+                    description: 'Profile ID for authentication',
                 },
             },
             schemas: {
-                // Profile Schema
-                Profile: {
-                    type: 'object',
-                    properties: {
-                        id: {
-                            type: 'integer',
-                            example: 1,
-                        },
-                        firstName: {
-                            type: 'string',
-                            example: 'Albus',
-                        },
-                        lastName: {
-                            type: 'string',
-                            example: 'Dumbledore',
-                        },
-                        profession: {
-                            type: 'string',
-                            example: 'Headmaster',
-                        },
-                        balance: {
-                            type: 'number',
-                            format: 'double',
-                            example: 10000.00,
-                        },
-                        type: {
-                            type: 'string',
-                            enum: ['client', 'contractor', 'admin'],
-                            example: 'admin',
-                        },
-                        createdAt: {
-                            type: 'string',
-                            format: 'date-time',
-                            example: "2023-01-01T00:00:00.000Z",
-                        },
-                        updatedAt: {
-                            type: 'string',
-                            format: 'date-time',
-                            example: "2023-01-10T00:00:00.000Z",
-                        },
-                    },
-                },
-                // Contract Schema
+                // Define your schemas here (e.g., Profile, Contract, Job, etc.)
+                // Example:
                 Contract: {
                     type: 'object',
                     properties: {
@@ -118,7 +78,7 @@ const options = {
                         },
                     },
                 },
-                // Job Schema
+                // Add other schemas like Job, BestProfessionResponse, etc.
                 Job: {
                     type: 'object',
                     properties: {
@@ -161,7 +121,6 @@ const options = {
                         },
                     },
                 },
-                // Best Profession Response Schema
                 BestProfessionResponse: {
                     type: 'object',
                     properties: {
@@ -176,7 +135,6 @@ const options = {
                         },
                     },
                 },
-                // Best Client Response Schema
                 BestClientResponse: {
                     type: 'object',
                     properties: {
@@ -195,7 +153,6 @@ const options = {
                         },
                     },
                 },
-                // Pay Job Response Schema
                 PayJobResponse: {
                     type: 'object',
                     properties: {
@@ -208,7 +165,6 @@ const options = {
                         },
                     },
                 },
-                // Error Response Schema
                 ErrorResponse: {
                     type: 'object',
                     properties: {
@@ -222,7 +178,7 @@ const options = {
         },
         security: [
             {
-                bearerAuth: [],
+                profileAuth: [],
             },
         ],
     },
