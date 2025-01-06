@@ -11,6 +11,7 @@ describe('Admin Routes', () => {
       { id: 1, firstName: 'Harry', lastName: 'Potter', profession: 'Wizard', balance: 1000, type: 'client' },
       { id: 2, firstName: 'Hermione', lastName: 'Granger', profession: 'Wizard', balance: 1500, type: 'contractor' },
       { id: 3, firstName: 'Ron', lastName: 'Weasley', profession: 'Wizard', balance: 500, type: 'client' },
+      { id: 9, firstName: 'Albus', lastName: 'Dumbledore', profession: 'Headmaster', balance: 10000.00, type: 'admin' }
     ]);
     await Contract.bulkCreate([
       { id: 1, terms: 'Contract 1 terms', status: 'in_progress', ClientId: 1, ContractorId: 2 },
@@ -31,7 +32,7 @@ describe('Admin Routes', () => {
     it('should return the best profession within the date range', async () => {
       const response = await request(app)
         .get('/admin/best-profession?start=2020-08-10&end=2020-08-20')
-        .set('profile_id', '1') // Profile ID as string
+        .set('profile_id', '9') // Profile ID as string
         .expect(200);
 
       expect(response.body).toHaveProperty('profession', 'Wizard');
@@ -41,7 +42,7 @@ describe('Admin Routes', () => {
     it('should return 404 if no professions are found', async () => {
       const response = await request(app)
         .get('/admin/best-profession?start=2021-01-01&end=2021-01-31')
-        .set('profile_id', '1')
+        .set('profile_id', '9')
         .expect(404);
 
       expect(response.body).toHaveProperty('error', 'No professions found');
@@ -50,7 +51,7 @@ describe('Admin Routes', () => {
     it('should return 400 if start or end dates are missing', async () => {
       const response = await request(app)
         .get('/admin/best-profession?start=2020-08-10')
-        .set('profile_id', '1')
+        .set('profile_id', '9')
         .expect(400);
 
       expect(response.body).toHaveProperty('error', '"end" is required');
@@ -78,7 +79,7 @@ describe('Admin Routes', () => {
     it('should return the top clients within the date range', async () => {
       const response = await request(app)
         .get('/admin/best-clients?start=2020-08-10&end=2020-08-20&limit=2')
-        .set('profile_id', '1')
+        .set('profile_id', '9')
         .expect(200);
   
       expect(Array.isArray(response.body)).toBe(true);
@@ -94,7 +95,7 @@ describe('Admin Routes', () => {
     it('should apply default limit if not specified', async () => {
       const response = await request(app)
         .get('/admin/best-clients?start=2020-08-10&end=2020-08-20')
-        .set('profile_id', '1')
+        .set('profile_id', '9')
         .expect(200);
   
       expect(response.body.length).toBe(2); // Default limit is 2
@@ -105,7 +106,7 @@ describe('Admin Routes', () => {
     it('should return an empty array if no clients are found', async () => {
       const response = await request(app)
         .get('/admin/best-clients?start=2021-01-01&end=2021-01-31')
-        .set('profile_id', '1')
+        .set('profile_id', '9')
         .expect(200);
   
       expect(Array.isArray(response.body)).toBe(true);
@@ -115,7 +116,7 @@ describe('Admin Routes', () => {
     it('should return 400 if start or end dates are missing', async () => {
       const response = await request(app)
         .get('/admin/best-clients?start=2020-08-10')
-        .set('profile_id', '1')
+        .set('profile_id', '9')
         .expect(400);
   
       expect(response.body).toHaveProperty('error', '"end" is required');
@@ -141,7 +142,7 @@ describe('Admin Routes', () => {
     it('should return 400 for invalid date formats', async () => {
       const response = await request(app)
         .get('/admin/best-clients?start=invalid-date&end=2020-08-20')
-        .set('profile_id', '1')
+        .set('profile_id', '9')
         .expect(400);
   
       expect(response.body).toHaveProperty('error', '"start" must be in ISO 8601 date format');
@@ -152,7 +153,7 @@ describe('Admin Routes', () => {
     it('should return best profession correctly with overlapping date ranges', async () => {      
       const response = await request(app)
         .get('/admin/best-profession?start=2020-08-10&end=2020-08-20')
-        .set('profile_id', '1')
+        .set('profile_id', '9')
         .expect(200);
 
       expect(response.body).toHaveProperty('profession', 'Wizard');
@@ -162,7 +163,7 @@ describe('Admin Routes', () => {
     it('should handle invalid date formats gracefully', async () => {
       const response = await request(app)
         .get('/admin/best-profession?start=invalid-date&end=2020-08-20')
-        .set('profile_id', '1')
+        .set('profile_id', '9')
         .expect(400);
 
       expect(response.body).toHaveProperty('error', '"start" must be in ISO 8601 date format');

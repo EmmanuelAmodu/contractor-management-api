@@ -80,6 +80,14 @@ async function seed() {
         balance: 314,
         type: 'contractor',
       }),
+      Profile.create({
+        id: 9,
+        firstName: 'Albus',
+        lastName: 'Dumbledore',
+        profession: 'Headmaster',
+        balance: 10000.00,
+        type: 'admin',
+      }),
     ]);
 
     console.log('Profiles created successfully.');

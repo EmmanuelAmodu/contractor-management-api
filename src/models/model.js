@@ -31,7 +31,7 @@ Profile.init(
         },
     },
     type: {
-      type: Sequelize.ENUM('client', 'contractor')
+      type: Sequelize.ENUM('client', 'contractor', 'admin')
     }
   },
   {

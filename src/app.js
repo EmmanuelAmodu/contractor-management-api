@@ -8,7 +8,6 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 const logger = require('./utils/logger');
 const { sequelize } = require('./models/model');
-const { getProfile } = require('./middleware/getProfile');
 
 const contractRoutes = require('./routes/contractRoutes');
 const jobRoutes = require('./routes/jobRoutes');
@@ -28,11 +27,172 @@ const options = {
         },
         servers: [
             {
-                url: `http://localhost:${process.env.PORT}`,
+                url: `http://localhost:${process.env.PORT || 3001}`,
+            },
+        ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                },
+            },
+            schemas: {
+                // Profile Schema
+                Profile: {
+                    type: 'object',
+                    properties: {
+                        id: {
+                            type: 'integer',
+                            example: 1,
+                        },
+                        firstName: {
+                            type: 'string',
+                            example: 'Albus',
+                        },
+                        lastName: {
+                            type: 'string',
+                            example: 'Dumbledore',
+                        },
+                        profession: {
+                            type: 'string',
+                            example: 'Headmaster',
+                        },
+                        balance: {
+                            type: 'number',
+                            format: 'double',
+                            example: 10000.00,
+                        },
+                        type: {
+                            type: 'string',
+                            enum: ['client', 'contractor', 'admin'],
+                            example: 'admin',
+                        },
+                        createdAt: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: "2023-01-01T00:00:00.000Z",
+                        },
+                        updatedAt: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: "2023-01-10T00:00:00.000Z",
+                        },
+                    },
+                },
+                // Contract Schema
+                Contract: {
+                    type: 'object',
+                    properties: {
+                        id: {
+                            type: 'integer',
+                            example: 1,
+                        },
+                        terms: {
+                            type: 'string',
+                            example: "Provide advanced magic lessons.",
+                        },
+                        status: {
+                            type: 'string',
+                            enum: ['new', 'in_progress', 'terminated'],
+                            example: "terminated",
+                        },
+                        ClientId: {
+                            type: 'integer',
+                            example: 2,
+                        },
+                        ContractorId: {
+                            type: 'integer',
+                            example: 5,
+                        },
+                        createdAt: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: "2023-01-01T00:00:00.000Z",
+                        },
+                        updatedAt: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: "2023-01-10T00:00:00.000Z",
+                        },
+                    },
+                },
+                // Job Schema
+                Job: {
+                    type: 'object',
+                    properties: {
+                        id: {
+                            type: 'integer',
+                            example: 1,
+                        },
+                        description: {
+                            type: 'string',
+                            example: "Develop secure authentication module.",
+                        },
+                        price: {
+                            type: 'number',
+                            format: 'double',
+                            example: 200.00,
+                        },
+                        paid: {
+                            type: 'boolean',
+                            example: false,
+                        },
+                        paymentDate: {
+                            type: 'string',
+                            format: 'date-time',
+                            nullable: true,
+                            example: null,
+                        },
+                        ContractId: {
+                            type: 'integer',
+                            example: 1,
+                        },
+                        createdAt: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: "2023-01-01T00:00:00.000Z",
+                        },
+                        updatedAt: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: "2023-01-10T00:00:00.000Z",
+                        },
+                    },
+                },
+                // Pay Job Response Schema
+                PayJobResponse: {
+                    type: 'object',
+                    properties: {
+                        message: {
+                            type: 'string',
+                            example: "Payment successful",
+                        },
+                        job: {
+                            $ref: '#/components/schemas/Job',
+                        },
+                    },
+                },
+                // Error Response Schema
+                ErrorResponse: {
+                    type: 'object',
+                    properties: {
+                        error: {
+                            type: 'string',
+                            example: 'An unexpected error occurred',
+                        },
+                    },
+                },
+            },
+        },
+        security: [
+            {
+                bearerAuth: [],
             },
         ],
     },
-    apis: ['./src/routes/*.js'], // Path to the API docs
+    apis: ['./src/routes/*.js'],
 };
 
 const specs = swaggerJsdoc(options);
