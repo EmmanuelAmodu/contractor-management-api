@@ -161,6 +161,40 @@ const options = {
                         },
                     },
                 },
+                // Best Profession Response Schema
+                BestProfessionResponse: {
+                    type: 'object',
+                    properties: {
+                        profession: {
+                            type: 'string',
+                            example: 'Wizard',
+                        },
+                        total_earned: {
+                            type: 'number',
+                            format: 'double',
+                            example: 1500.00,
+                        },
+                    },
+                },
+                // Best Client Response Schema
+                BestClientResponse: {
+                    type: 'object',
+                    properties: {
+                        id: {
+                            type: 'integer',
+                            example: 1,
+                        },
+                        fullName: {
+                            type: 'string',
+                            example: 'Reece Moyer',
+                        },
+                        paid: {
+                            type: 'number',
+                            format: 'double',
+                            example: 100.3,
+                        },
+                    },
+                },
                 // Pay Job Response Schema
                 PayJobResponse: {
                     type: 'object',
@@ -192,7 +226,7 @@ const options = {
             },
         ],
     },
-    apis: ['./src/routes/*.js'],
+    apis: ['./src/routes/*.js'], // Ensure this path is correct
 };
 
 const specs = swaggerJsdoc(options);
